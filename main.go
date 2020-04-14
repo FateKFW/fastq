@@ -1,8 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"io"
+	"os"
+	"strings"
+	"time"
 )
 
 /*
@@ -31,16 +36,34 @@ func main(){
 	} else if db.dbtype == "oracle" {
 		fmt.Println("Oracle数据库待更新")
 	}
+
+	time.Sleep(2 * time.Second)
 }
 
 //初始化连接信息
 func (db *DBConn) initConf() *DBConn{
-	db.dbtype = "mysql"
-	db.ip = "192.168.1.5"
-	db.port = "3306"
-	db.name = "root"
-	db.pwd = "admin"
-	db.database = "test"
-	db.dql = "select * from test"
+	f, _ := os.Open(os.Args[1])
+	buf := bufio.NewReader(f)
+	for {
+		line, err := buf.ReadString('\n')
+		param := strings.Split(strings.TrimSpace(line),":")
+		switch param[0] {
+			case "dbtype": db.dbtype = param[1]
+			case "ip": db.ip = param[1]
+			case "port": db.port = param[1]
+			case "name": db.name = param[1]
+			case "pwd": db.pwd = param[1]
+			case "database": db.database = param[1]
+			case "dql": db.dql = param[1]
+		}
+
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				panic(err)
+			}
+		}
+	}
 	return db
 }
