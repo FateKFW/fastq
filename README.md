@@ -14,3 +14,5 @@ dql:select * from test
 ## 版本说明
 ### V1.0.0
 支持mysql查询
+### V1.1.0
+加入日志体系
