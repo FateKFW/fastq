@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 )
 
 /*
@@ -28,21 +27,28 @@ type DBConn struct {
 	dql string
 }
 
+const PROJECT_NAME = "fastq"
+var logger = new(Fastlog)
+
 func main(){
+	//日志模块初始化
+	logger.initFastlog(2)
+	//数据库操作开始
 	db := new(DBConn)
 	db.initConf()
 	if db.dbtype == "mysql" {
 		db.opMySQL()
 	} else if db.dbtype == "oracle" {
 		fmt.Println("Oracle数据库待更新")
+	} else {
+		logger.errorStr("未知数据库类型")
 	}
-
-	time.Sleep(2 * time.Second)
 }
 
 //初始化连接信息
 func (db *DBConn) initConf() *DBConn{
 	f, _ := os.Open(os.Args[1])
+	//f, _ := os.Open("D:/WorkSpace4Idea/fastq/a.txt")
 	buf := bufio.NewReader(f)
 	for {
 		line, err := buf.ReadString('\n')
@@ -61,7 +67,7 @@ func (db *DBConn) initConf() *DBConn{
 			if err == io.EOF {
 				break
 			} else {
-				panic(err)
+				logger.error(err)
 			}
 		}
 	}

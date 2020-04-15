@@ -2,10 +2,8 @@ package main
 
 import (
 	"database/sql"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
+	"fmt"
+	"strings"
 )
 
 //获取连接
@@ -16,13 +14,14 @@ func (db *DBConn) getMySQLConn() (*sql.DB,error){
 func (db *DBConn) opMySQL()  {
 	conn,err := db.getMySQLConn()
 	if err != nil {
-		panic(err)
+		fmt.Print(err)
+		logger.error(err)
 	}
 
 	//执行查询操作
 	rows, err := conn.Query(db.dql)
 	if err != nil {
-		panic(err)
+		logger.error(err)
 	}
 
 	//如果出错或者上述代码执行完毕，延迟关闭连接
@@ -61,21 +60,22 @@ func (db *DBConn) opMySQL()  {
 		fmt.Println(i.Value)
 	}*/
 
-	fileName := strconv.FormatInt(time.Now().Unix(),10)
-	file, err := os.Create("."+string(filepath.Separator)+fileName+".txt")
-	if err != nil {
-		panic(err)
-	}
+	var builder strings.Builder
 
-	for rows.Next() { //循环，让游标往下推
-		if err := rows.Scan(scans...); err != nil { //query.Scan查询出来的不定长值放到scans[i] = &values[i],也就是每行都放在values里
+	for _, obj := range cols {
+		builder.WriteString(obj+"\t")
+	}
+	builder.WriteString("\n")
+
+	for rows.Next() {
+		if err := rows.Scan(scans...); err != nil {
 			panic(err)
 		}
-
-		for k, v := range values { //每行数据是放在values里面，现在把它挪到row里
-			file.WriteString(strconv.Itoa(k)+":"+string(v)+"\n")
+		for _, v := range values {
+			builder.WriteString(string(v)+"\t")
 		}
+		builder.WriteString("\n")
 	}
 
-	defer file.Close()
+	logger.result("执行查询结果",builder.String())
 }
