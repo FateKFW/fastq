@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"io"
 	"os"
@@ -38,10 +37,8 @@ func main(){
 	db.initConf()
 	if db.dbtype == "mysql" {
 		db.opMySQL()
-	} else if db.dbtype == "oracle" {
-		fmt.Println("Oracle数据库待更新")
 	} else {
-		logger.errorStr("未知数据库类型")
+		logger.errorStr("尚未支持数据库类型")
 	}
 }
 
