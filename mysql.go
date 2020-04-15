@@ -1,9 +1,11 @@
 package main
 
 import (
-	"container/list"
 	"database/sql"
-	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
 )
 
 //获取连接
@@ -41,7 +43,7 @@ func (db *DBConn) opMySQL()  {
 	}
 
 	//最后得到的map
-	list := list.New()
+	/*list := list.New()
 	for rows.Next() { //循环，让游标往下推
 		if err := rows.Scan(scans...); err != nil { //query.Scan查询出来的不定长值放到scans[i] = &values[i],也就是每行都放在values里
 			panic(err)
@@ -53,10 +55,27 @@ func (db *DBConn) opMySQL()  {
 			row[cols[k]] = string(v)
 		}
 		list.PushBack(row)
+	}*/
+	//查询出来的数组
+	/*for i := list.Front(); i != nil; i = i.Next() {
+		fmt.Println(i.Value)
+	}*/
+
+	fileName := strconv.FormatInt(time.Now().Unix(),10)
+	file, err := os.Create("."+string(filepath.Separator)+fileName+".txt")
+	if err != nil {
+		panic(err)
 	}
 
-	//查询出来的数组
-	for i := list.Front(); i != nil; i = i.Next() {
-		fmt.Println(i.Value)
+	for rows.Next() { //循环，让游标往下推
+		if err := rows.Scan(scans...); err != nil { //query.Scan查询出来的不定长值放到scans[i] = &values[i],也就是每行都放在values里
+			panic(err)
+		}
+
+		for k, v := range values { //每行数据是放在values里面，现在把它挪到row里
+			file.WriteString(strconv.Itoa(k)+":"+string(v)+"\n")
+		}
 	}
+
+	defer file.Close()
 }
