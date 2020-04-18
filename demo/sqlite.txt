@@ -1,0 +1,3 @@
+dbtype:sqlite3
+file:./foo.db
+dql:select * from user
