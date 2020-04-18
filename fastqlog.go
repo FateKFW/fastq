@@ -12,6 +12,7 @@ type Fastlog struct {
 	logger *log.Logger
 }
 
+//level 记录日志级别 4：error 3：warring及以上 2：info及以上 1：debug
 func (fl *Fastlog) initFastlog(level int){
 	logFile, _ := os.Create("."+ string(filepath.Separator) + time.Now().Format("20060102_150405") + ".txt")
 	fl.logger = log.New(logFile, PROJECT_NAME+" ", log.Ldate | log.Ltime)
