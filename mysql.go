@@ -2,8 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
-	"strings"
 )
 
 //获取连接
@@ -14,7 +12,6 @@ func (db *DBConn) getMySQLConn() (*sql.DB,error){
 func (db *DBConn) opMySQL()  {
 	conn,err := db.getMySQLConn()
 	if err != nil {
-		fmt.Print(err)
 		logger.error(err)
 	}
 
@@ -27,19 +24,7 @@ func (db *DBConn) opMySQL()  {
 	//如果出错或者上述代码执行完毕，延迟关闭连接
 	defer conn.Close()
 
-	//读出查询出的列字段名
-	cols, _ := rows.Columns()
-
-	//values是每个列的值，这里获取到byte里
-	values := make([][]byte, len(cols))
-
-	//query.Scan的参数，因为每次查询出来的列是不定长的，用len(cols)定住当次查询的长度
-	scans := make([]interface{}, len(cols))
-
-	//让每一行数据都填充到[][]byte里面
-	for i := range values {
-		scans[i] = &values[i]
-	}
+	db.showResult(rows)
 
 	//最后得到的map
 	/*list := list.New()
@@ -59,23 +44,4 @@ func (db *DBConn) opMySQL()  {
 	/*for i := list.Front(); i != nil; i = i.Next() {
 		fmt.Println(i.Value)
 	}*/
-
-	var builder strings.Builder
-
-	for _, obj := range cols {
-		builder.WriteString(obj+"\t")
-	}
-	builder.WriteString("\n")
-
-	for rows.Next() {
-		if err := rows.Scan(scans...); err != nil {
-			panic(err)
-		}
-		for _, v := range values {
-			builder.WriteString(string(v)+"\t")
-		}
-		builder.WriteString("\n")
-	}
-
-	logger.result("执行查询结果",builder.String())
 }
