@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 	"io"
 	"os"
 	"strings"
@@ -30,7 +31,6 @@ type DBConn struct {
 }
 
 const PROJECT_NAME = "fastq"
-var logger = new(Fastlog)
 
 func main(){
 	//日志模块初始化
@@ -46,7 +46,7 @@ func main(){
 	} else if db.dbtype == "sqlite3" {
 		db.opSQLite()
 	} else {
-		logger.errorStr("尚未支持数据库类型")
+		logger.error("尚未支持数据库类型")
 	}
 }
 

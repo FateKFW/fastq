@@ -21,8 +21,8 @@ func (db *DBConn) opMySQL()  {
 		logger.error(err)
 	}
 
-	//如果出错或者上述代码执行完毕，延迟关闭连接
-	defer conn.Close()
+	defer conn.Close()	//如果出错或者上述代码执行完毕，延迟关闭连接
+
 
 	db.showResult(rows)
 
