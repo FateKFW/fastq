@@ -11,6 +11,7 @@
      database:[操作哪个databbase]
      dql:[需要执行的dql,多条以";"分割]
      dml:[需要执行的dml,多条以";"分割]
-### [mysql](https://github.com/FateKFW/fastq/blob/master/demo/mysql.txt)
-### [sqlite](https://github.com/FateKFW/fastq/blob/master/demo/sqlite.txt)
-### [postgresql](https://github.com/FateKFW/fastq/blob/master/demo/pg.txt)
+### 配置参考
+#### [mysql](https://github.com/FateKFW/fastq/blob/master/demo/mysql.txt)
+#### [sqlite](https://github.com/FateKFW/fastq/blob/master/demo/sqlite.txt)
+#### [postgresql](https://github.com/FateKFW/fastq/blob/master/demo/pg.txt)
