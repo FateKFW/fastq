@@ -18,7 +18,7 @@ func (fq *FastQ) getPostgreDB() (*sql.DB, error){
 		return nil,err
 	}
 
-	//与数据量最大连接数
+	//与数据库最大连接数
 	db.SetMaxOpenConns(10)
 	//最大闲置连接数
 	db.SetMaxIdleConns(5)
