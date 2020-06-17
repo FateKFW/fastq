@@ -3,9 +3,10 @@ package main
 import (
 	"bufio"
 	"database/sql"
+	"errors"
 	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 	"io"
 	"os"
 	"strings"
@@ -19,15 +20,15 @@ DCL：数据控制语言 。关键字：GRANT、REVOKE。
 TCL：事务控制语言。关键字：COMMIT、ROLLBACK、SAVEPOINT。
 */
 
-type DBConn struct {
+type FastQ struct {
 	dbtype string
-	ip string
+	url string
 	port string
 	name string
 	pwd string
 	database string
 	dql string
-	file string
+	dml string
 }
 
 const PROJECT_NAME = "fastq"
@@ -37,23 +38,15 @@ func main(){
 	logger.initFastlog(2)
 
 	//执行信息初始化
-	db := new(DBConn)
-	db.initConf()
-
-	//数据库操作开始
-	if db.dbtype == "mysql" {
-		db.opMySQL()
-	} else if db.dbtype == "sqlite3" {
-		db.opSQLite()
-	} else {
-		logger.error("尚未支持数据库类型")
-	}
+	fq := new(FastQ)
+	fq.initConf()
+	fq.handleOP()
 }
 
 //初始化连接信息
-func (db *DBConn) initConf() *DBConn{
+func (fq *FastQ) initConf() *FastQ{
 	f, _ := os.Open(os.Args[1])
-	//f, _ := os.Open("D:/WorkSpace4Idea/fastq/demo/sqlite.txt")
+	//f, _ := os.Open("D:/WorkSpace4Idea/fastq/demo/pg.txt")
 	buf := bufio.NewReader(f)
 	for {
 		line, err := buf.ReadString('\n')
@@ -63,14 +56,14 @@ func (db *DBConn) initConf() *DBConn{
 		value := str[strings.Index(str,":")+1:]
 
 		switch key {
-			case "dbtype": db.dbtype = value
-			case "ip": db.ip = value
-			case "port": db.port = value
-			case "name": db.name = value
-			case "pwd": db.pwd = value
-			case "database": db.database = value
-			case "dql": db.dql = value
-			case "file": db.file = value
+			case "dbtype": fq.dbtype = value
+			case "url": fq.url = value
+			case "port": fq.port = value
+			case "name": fq.name = value
+			case "pwd": fq.pwd = value
+			case "database": fq.database = value
+			case "dql": fq.dql = value
+			case "dml": fq.dml = value
 		}
 
 		if err != nil {
@@ -81,10 +74,80 @@ func (db *DBConn) initConf() *DBConn{
 			}
 		}
 	}
-	return db
+	return fq
 }
 
-func (db *DBConn) showResult(rows *sql.Rows){
+func (fq *FastQ) handleOP() {
+	var db *sql.DB
+	var err error
+
+	//获取数据库操作
+	if fq.dbtype == "mysql" {			//mysql
+		db,err = fq.getMySqlDB()
+	} else if fq.dbtype == "sqlite3" {	//sqlite
+		db,err = fq.getSQLiteDB()
+	} else if fq.dbtype == "postgres" {	//pg
+		db,err = fq.getPostgreDB()
+	} else {
+		logger.error("尚未支持数据库类型")
+	}
+	defer db.Close()
+
+	if err != nil {
+		logger.error(err)
+	}
+
+	//执行dql
+	if fq.dql != "" {
+		fq.handleDQL(db)
+	}
+
+	//执行dml
+	if fq.dml != "" {
+		tx,err := db.Begin()
+		if err != nil {
+			logger.error(err)
+		}
+		err = fq.handleDML(db)
+		if err != nil {
+			tx.Rollback()
+			logger.result("DML exec", strings.ReplaceAll(fq.dml, ";", "\n")+"exec failed")
+		} else {
+			logger.result("DML exec", strings.ReplaceAll(fq.dml, ";", "\n")+"exec success")
+			tx.Commit()
+		}
+	}
+}
+
+//执行DQL
+func (fq *FastQ) handleDQL(db *sql.DB) {
+	ch := make(chan map[string]interface{}, 1000)
+	dqlArr := strings.Split(fq.dql, ";")
+
+	//执行查询
+	for _,obj := range dqlArr {
+		go (func(dql string) {
+			rows, err := db.Query(dql)
+			if err != nil {
+				logger.nerror(err)
+			} else {
+				res := make(map[string]interface{})
+				res["dql"] = dql
+				res["rows"] = rows
+				ch <- res
+			}
+		})(obj)
+	}
+
+	//结果处理
+	for i:=0; i<len(dqlArr); i++ {
+		res := <- ch
+		fq.showResult(res["dql"].(string), res["rows"].(*sql.Rows))
+	}
+}
+
+//处理DQL结果
+func (fq *FastQ) showResult(dql string, rows *sql.Rows){
 	//读出查询出的列字段名
 	cols, _ := rows.Columns()
 
@@ -100,21 +163,47 @@ func (db *DBConn) showResult(rows *sql.Rows){
 	}
 
 	var builder strings.Builder
-
-	for _, obj := range cols {
-		builder.WriteString(obj+"\t")
-	}
-	builder.WriteString("\n")
-
-	for rows.Next() {
-		if err := rows.Scan(scans...); err != nil {
-			panic(err)
-		}
-		for _, v := range values {
-			builder.WriteString(string(v)+"\t")
+	if len(cols) > 0 {
+		for _, obj := range cols {
+			builder.WriteString(obj+"\t")
 		}
 		builder.WriteString("\n")
+
+		for rows.Next() {
+			if err := rows.Scan(scans...); err != nil {
+				panic(err)
+			}
+			for _, v := range values {
+				builder.WriteString(string(v)+"\t")
+			}
+			builder.WriteString("\n")
+		}
+	}
+	logger.result(dql, builder.String())
+}
+
+//处理DML
+func (fq *FastQ) handleDML(db *sql.DB) error{
+	ch := make(chan bool, 1000)
+	dmlArr := strings.Split(fq.dml, ";")
+
+	for _,obj := range dmlArr {
+		go (func(dml string){
+			_,err := db.Exec(dml)
+			if err != nil {
+				logger.nerror(err)
+				ch <- false
+			} else {
+				ch <- true
+			}
+		})(obj)
 	}
 
-	logger.result("执行查询结果",builder.String())
+	for i:=0; i<len(dmlArr); i++ {
+		if !<-ch {
+			return errors.New("")
+		}
+	}
+
+	return nil
 }

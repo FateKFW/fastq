@@ -46,6 +46,12 @@ func (fl *Fastlog) error(err interface{}){
 	}
 }
 
+func (fl *Fastlog) nerror(err interface{}){
+	if fl.logLevel <= 4 {
+		fl.logger.Printf(" ERROR: %v", err)
+	}
+}
+
 func (fl *Fastlog) result(title string,content string){
-	fl.logger.Printf(" RESULT>>%v\n%v", title, content)
+	fl.logger.Printf(" RESULT >> %v\n%v", title, content)
 }
