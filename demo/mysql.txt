@@ -1,5 +1,5 @@
 dbtype:mysql
-ip:192.168.1.52
+url:192.168.1.52
 port:3306
 name:root
 pwd:admin

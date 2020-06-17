@@ -1,3 +1,3 @@
 dbtype:sqlite3
-file:./foo.db
+url:./foo.db
 dql:select * from user where id ='1'
