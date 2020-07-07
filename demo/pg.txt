@@ -4,5 +4,4 @@ port:5432
 name:postgres
 pwd:admin
 database:postgres
-dql:select * from users where id = '10'; select * from users; select * from users where id = '1'
-dml:INSERT INTO users (id, name, age, other, other2) VALUES('10', '10', '10', '10', '10');INSERT INTO users (id, name, age, other, other2) VALUES('10', '10', '10', '10', '10');
+dql:select * from users; select * from users where id = '1'
